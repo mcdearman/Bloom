@@ -1,0 +1,79 @@
+-- A style: colours for the text, its background and its underline, and
+-- effects. The crate's `src/style.rs` and `src/reset.rs`.
+--
+-- Copyright the anstyle contributors, and the Meadow port's authors.
+-- Dual-licensed under Apache-2.0 or MIT: see COPYRIGHT.
+
+use anstyle.Color
+use anstyle.Effects
+
+-- How text looks. `Nothing` in a colour leaves the terminal's own.
+@pub record Style = { fg : Maybe Color, bg : Maybe Color, underline : Maybe Color, effects : Effects }
+
+-- The plain style: no colours, no effects.
+@pub def style = Style { fg = None, bg = None, underline = None, effects = plain }
+
+-- The sequence that turns every style off.
+@pub def reset = "\u{1b}[0m"
+
+@pub fun withFg c (s : Style) = { s | fg = c }
+
+@pub fun withBg c (s : Style) = { s | bg = c }
+
+@pub fun withUnderlineColor c (s : Style) = { s | underline = c }
+
+-- `s` with exactly the effects `es`.
+@pub fun withEffects es (s : Style) = { s | effects = es }
+
+-- `s` with the effects `es` added: the crate's `style | effects`.
+@pub fun addEffects es (s : Style) = { s | effects = insertEffects s.effects es }
+
+-- `s` with the effects `es` taken out: the crate's `style - effects`.
+@pub fun subEffects es (s : Style) = { s | effects = removeEffects s.effects es }
+
+@pub fun bold s = addEffects (effectSet Effect.Bold) s
+
+@pub fun dimmed s = addEffects (effectSet Effect.Dimmed) s
+
+@pub fun italic s = addEffects (effectSet Effect.Italic) s
+
+-- The crate's `underline`, renamed so as not to be confused with the field.
+@pub fun underlined s = addEffects (effectSet Effect.Underline) s
+
+@pub fun blink s = addEffects (effectSet Effect.Blink) s
+
+@pub fun invert s = addEffects (effectSet Effect.Invert) s
+
+@pub fun hidden s = addEffects (effectSet Effect.Hidden) s
+
+@pub fun strikethrough s = addEffects (effectSet Effect.Strikethrough) s
+
+-- The style with just the effects `es`.
+@pub fun styleOfEffects es = withEffects es style
+
+-- `fg` on `bg`.
+@pub fun on fg bg = withBg (Just bg) (withFg (Just fg) style)
+
+-- `fg` on the terminal's own background.
+@pub fun onDefault fg = withFg (Just fg) style
+
+-- Whether `s` has no colours and no effects.
+@pub fun isPlain (s : Style) =
+  s.fg == None and s.bg == None and s.underline == None and isPlainEffects s.effects
+
+-- The sequences that turn `s` on: effects, then the text, background and
+-- underline colours.
+@pub fun render (s : Style) =
+  let colour = \f m ->
+    match m with
+    | Just c -> f c
+    | None -> ""
+  in
+  renderEffects s.effects ++ colour renderFg s.fg ++ colour renderBg s.bg ++ colour renderUnderline s.underline
+
+-- The sequence that turns `s` off again: `reset`, or nothing for the plain
+-- style, which turned nothing on.
+@pub fun renderReset (s : Style) = if isPlain s then "" else reset
+
+-- `text` in the style `s`, with the style turned off after it.
+@pub fun paint s text = render s ++ text ++ renderReset s

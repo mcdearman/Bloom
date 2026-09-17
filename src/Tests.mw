@@ -1,0 +1,189 @@
+-- The port against the crate: every case in `Cases.mw`, whose expected results
+-- came from calling anstyle itself, plus a few examples.
+--
+-- Every declaration carries `@cfg(test)`, as the tests are no part of the
+-- package.
+
+@cfg(test)
+use Std.Test (assertEq)
+@cfg(test)
+use Std.Collections.Vector as V
+@cfg(test)
+use Std.String as S
+@cfg(test)
+use anstyle.Cases (cases)
+@cfg(test)
+use anstyle.Color
+@cfg(test)
+use anstyle.Color.AnsiColor.*
+@cfg(test)
+use anstyle.Color.Color.*
+@cfg(test)
+use anstyle.Effects
+@cfg(test)
+use anstyle.Style
+
+@cfg(test)
+fun num i n =
+  let rec go k acc = if k >= n then acc else go (k + 1) (acc * 64 + (toInt (stringByteAt cases (i + k)) - 48)) in
+  (go 0 0, i + n)
+
+@cfg(test)
+fun str i =
+  let len = fst (num i 3) in
+  (stringSlice cases (i + 3) (i + 3 + len), i + 3 + len)
+
+@cfg(test)
+fun ansiAt i = V.getOr Black allAnsi i
+
+@cfg(test)
+def allAnsi =
+  V.map
+    (\i ->
+      match ansiFromIndex i with
+      | Just a -> a
+      | None -> Black)
+    (V.range 0 16)
+
+-- A colour, perhaps, and where it ends.
+@cfg(test)
+fun readColor i =
+  let kind = num i 1 in
+  match fst kind with
+  | 0 -> (None, snd kind)
+  | 1 ->
+      let a = num (snd kind) 1 in
+      (Just (Ansi (ansiAt (fst a))), snd a)
+  | 2 ->
+      let n = num (snd kind) 2 in
+      (Just (Ansi256 (fst n)), snd n)
+  | _ ->
+      let r = num (snd kind) 2 in
+      let g = num (snd r) 2 in
+      let b = num (snd g) 2 in
+      (Just (Rgb (fst r) (fst g) (fst b)), snd b)
+
+@cfg(test)
+fun effectsFromBits b = effectsOf (V.filter (\e -> hasEffect (Effects b) e) allEffects)
+
+@cfg(test)
+fun bitsOf es =
+  let bit = \k -> if hasEffect es (V.getOr Effect.Bold allEffects k) then 1 << k else 0 in
+  V.sum (V.map bit (V.range 0 12))
+
+@cfg(test)
+fun effectsOfStyle (s : Style) = s.effects
+
+@cfg(test)
+fun flag b = if b then 1 else 0
+
+-- Kind 0: a style, and its effects combined with another set.
+@cfg(test)
+fun styleCase i =
+  let fg = readColor i in
+  let bg = readColor (snd fg) in
+  let ul = readColor (snd bg) in
+  let effects = num (snd ul) 2 in
+  let other = num (snd effects) 2 in
+  let es = effectsFromBits (fst effects) in
+  let os = effectsFromBits (fst other) in
+  let s = withEffects es (withUnderlineColor (fst ul) (withBg (fst bg) (withFg (fst fg) style))) in
+  let rendered = str (snd other) in
+  let resetText = str (snd rendered) in
+  let alternate = str (snd resetText) in
+  let isPlainFlag = num (snd alternate) 1 in
+  let debug = str (snd isPlainFlag) in
+  let contains = num (snd debug) 1 in
+  let inserted = num (snd contains) 2 in
+  let removed = num (snd inserted) 2 in
+  let ored = num (snd removed) 2 in
+  let subbed = num (snd ored) 2 in
+  let names = str (snd subbed) in
+  let want =
+    [ fst rendered,
+      fst resetText,
+      fst alternate,
+      "${fst isPlainFlag}",
+      fst debug,
+      "${fst contains}",
+      "${fst inserted} ${fst removed} ${fst ored} ${fst subbed}",
+      fst names ]
+  in
+  let got =
+    [ render s,
+      renderReset s,
+      renderReset s,
+      "${flag (isPlain s)}",
+      effectsDebug es,
+      "${flag (containsEffects es os)}",
+      "${bitsOf (insertEffects es os)} ${bitsOf (removeEffects es os)}"
+        ++ " ${bitsOf (effectsOfStyle (addEffects os s))} ${bitsOf (effectsOfStyle (subEffects os s))}",
+      S.join "," (V.map (\e -> effectsDebug (effectSet e)) (effectsList es)) ]
+  in
+  (want, got, snd names)
+
+-- Kind 1: a palette colour as one of the sixteen.
+@cfg(test)
+fun paletteCase i =
+  let n = num i 2 in
+  let expected = num (snd n) 1 in
+  let got =
+    match ansiFromIndex (fst n) with
+    | Just a -> ansiIndex a
+    | None -> 16
+  in
+  (["${fst expected}"], ["${got}"], snd expected)
+
+-- Kind 2: one of the sixteen, brightened, dimmed and on a background.
+@cfg(test)
+fun ansiCase i =
+  let k = num i 1 in
+  let brightened = num (snd k) 1 in
+  let dimmed = num (snd brightened) 1 in
+  let brightFlag = num (snd dimmed) 1 in
+  let onText = str (snd brightFlag) in
+  let onDefaultText = str (snd onText) in
+  let paletteText = str (snd onDefaultText) in
+  let a = ansiAt (fst k) in
+  let want =
+    [ "${fst brightened} ${fst dimmed} ${fst brightFlag}",
+      fst onText,
+      fst onDefaultText,
+      fst paletteText ]
+  in
+  let got =
+    [ "${ansiIndex (bright True a)} ${ansiIndex (bright False a)} ${flag (isBright a)}",
+      render (on (Ansi a) (Ansi (ansiAt (15 - fst k)))),
+      render (onDefault (Ansi a)),
+      renderFg (Ansi256 (ansiIndex a)) ]
+  in
+  (want, got, snd paletteText)
+
+@cfg(test)
+fun runCase i =
+  let kind = num i 1 in
+  match fst kind with
+  | 0 -> styleCase (snd kind)
+  | 1 -> paletteCase (snd kind)
+  | _ -> ansiCase (snd kind)
+
+@cfg(test)
+fun check i n bad =
+  if i >= stringByteLength cases
+  then (n, bad)
+  else
+    match runCase i with
+    | (want, got, next) -> check next (n + 1) (if want == got then bad else V.pushBack bad (want, got))
+
+-- The number of cases, and the first few where the port differs.
+@cfg(test)
+@test fun resultsMatchTheCrate () =
+  match check 0 0 V.empty with
+  | (n, bad) -> assertEq (n, V.take bad 3) (3272, []) "cases where the port and anstyle differ"
+
+@cfg(test)
+@test fun examples () =
+  let warning = bold (withFg (Just (Ansi Red)) style) in
+  let a = assertEq (paint warning "careful") "\u{1b}[1m\u{1b}[31mcareful\u{1b}[0m" "paint" in
+  let b = assertEq (paint style "plain") "plain" "plain" in
+  assertEq (effectsDebug (effectsOf [Effect.Italic, Effect.Bold])) "Effects(BOLD | ITALIC)" "debug"

@@ -1,0 +1,109 @@
+-- Colours, and the escape sequences that select them: the crate's
+-- `src/color.rs`.
+--
+-- Copyright the anstyle contributors, and the Meadow port's authors.
+-- Dual-licensed under Apache-2.0 or MIT: see COPYRIGHT.
+
+use Std.Collections.Vector as V
+
+-- The sixteen colours every terminal has.
+@pub data AnsiColor =
+  Black
+  | Red
+  | Green
+  | Yellow
+  | Blue
+  | Magenta
+  | Cyan
+  | White
+  | BrightBlack
+  | BrightRed
+  | BrightGreen
+  | BrightYellow
+  | BrightBlue
+  | BrightMagenta
+  | BrightCyan
+  | BrightWhite
+
+-- A colour: one of the sixteen, one of the 256 of the xterm palette (0 to
+-- 255), or red, green and blue, each 0 to 255.
+@pub data Color = Ansi AnsiColor | Ansi256 Int | Rgb Int Int Int
+
+def ansiColors =
+  [ AnsiColor.Black,
+    AnsiColor.Red,
+    AnsiColor.Green,
+    AnsiColor.Yellow,
+    AnsiColor.Blue,
+    AnsiColor.Magenta,
+    AnsiColor.Cyan,
+    AnsiColor.White,
+    AnsiColor.BrightBlack,
+    AnsiColor.BrightRed,
+    AnsiColor.BrightGreen,
+    AnsiColor.BrightYellow,
+    AnsiColor.BrightBlue,
+    AnsiColor.BrightMagenta,
+    AnsiColor.BrightCyan,
+    AnsiColor.BrightWhite ]
+
+-- The colour's place in the xterm palette, 0 to 15.
+@pub fun ansiIndex c =
+  match c with
+  | AnsiColor.Black -> 0
+  | AnsiColor.Red -> 1
+  | AnsiColor.Green -> 2
+  | AnsiColor.Yellow -> 3
+  | AnsiColor.Blue -> 4
+  | AnsiColor.Magenta -> 5
+  | AnsiColor.Cyan -> 6
+  | AnsiColor.White -> 7
+  | AnsiColor.BrightBlack -> 8
+  | AnsiColor.BrightRed -> 9
+  | AnsiColor.BrightGreen -> 10
+  | AnsiColor.BrightYellow -> 11
+  | AnsiColor.BrightBlue -> 12
+  | AnsiColor.BrightMagenta -> 13
+  | AnsiColor.BrightCyan -> 14
+  | AnsiColor.BrightWhite -> 15
+
+-- The palette colour `i` as one of the sixteen, if it is one: the crate's
+-- `Ansi256Color::into_ansi`.
+@pub fun ansiFromIndex i = if i < 0 then None else V.get ansiColors i
+
+-- `c`, made bright if `yes`, or made plain if not.
+@pub fun bright yes c =
+  let i = ansiIndex c in
+  let j = if yes and i < 8 then i + 8 else if not yes and i >= 8 then i - 8 else i in
+  V.getOr c ansiColors j
+
+-- Whether `c` is one of the eight bright colours.
+@pub fun isBright c = ansiIndex c >= 8
+
+fun escape body = "\u{1b}[${body}m"
+
+-- The sequence that sets the text colour to `c`.
+@pub fun renderFg c =
+  match c with
+  | Color.Ansi a ->
+      let i = ansiIndex a in
+      if i < 8 then escape "3${i}" else escape "9${i - 8}"
+  | Color.Ansi256 n -> escape "38;5;${n}"
+  | Color.Rgb r g b -> escape "38;2;${r};${g};${b}"
+
+-- The sequence that sets the background colour to `c`.
+@pub fun renderBg c =
+  match c with
+  | Color.Ansi a ->
+      let i = ansiIndex a in
+      if i < 8 then escape "4${i}" else escape "10${i - 8}"
+  | Color.Ansi256 n -> escape "48;5;${n}"
+  | Color.Rgb r g b -> escape "48;2;${r};${g};${b}"
+
+-- The sequence that sets the underline colour to `c`. There are no short
+-- codes for the sixteen, so they go by their palette index.
+@pub fun renderUnderline c =
+  match c with
+  | Color.Ansi a -> escape "58;5;${ansiIndex a}"
+  | Color.Ansi256 n -> escape "58;5;${n}"
+  | Color.Rgb r g b -> escape "58;2;${r};${g};${b}"

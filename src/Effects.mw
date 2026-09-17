@@ -1,0 +1,131 @@
+-- Text effects -- bold, italic, the underlines and the rest -- as a set: the
+-- crate's `src/effect.rs`.
+--
+-- Copyright the anstyle contributors, and the Meadow port's authors.
+-- Dual-licensed under Apache-2.0 or MIT: see COPYRIGHT.
+
+use Std.Collections.Vector as V
+use Std.String as S
+
+-- One effect.
+@pub data Effect =
+  Bold
+  | Dimmed
+  | Italic
+  | Underline
+  | DoubleUnderline
+  | CurlyUnderline
+  | DottedUnderline
+  | DashedUnderline
+  | Blink
+  | Invert
+  | Hidden
+  | Strikethrough
+
+-- A set of effects.
+@pub data Effects = Effects Int
+
+-- Every effect, in the order they are written out.
+@pub def allEffects =
+  [ Effect.Bold,
+    Effect.Dimmed,
+    Effect.Italic,
+    Effect.Underline,
+    Effect.DoubleUnderline,
+    Effect.CurlyUnderline,
+    Effect.DottedUnderline,
+    Effect.DashedUnderline,
+    Effect.Blink,
+    Effect.Invert,
+    Effect.Hidden,
+    Effect.Strikethrough ]
+
+fun effectIndex e =
+  match e with
+  | Effect.Bold -> 0
+  | Effect.Dimmed -> 1
+  | Effect.Italic -> 2
+  | Effect.Underline -> 3
+  | Effect.DoubleUnderline -> 4
+  | Effect.CurlyUnderline -> 5
+  | Effect.DottedUnderline -> 6
+  | Effect.DashedUnderline -> 7
+  | Effect.Blink -> 8
+  | Effect.Invert -> 9
+  | Effect.Hidden -> 10
+  | Effect.Strikethrough -> 11
+
+-- The effect's name, as the crate prints it.
+@pub fun effectName e =
+  match e with
+  | Effect.Bold -> "BOLD"
+  | Effect.Dimmed -> "DIMMED"
+  | Effect.Italic -> "ITALIC"
+  | Effect.Underline -> "UNDERLINE"
+  | Effect.DoubleUnderline -> "DOUBLE_UNDERLINE"
+  | Effect.CurlyUnderline -> "CURLY_UNDERLINE"
+  | Effect.DottedUnderline -> "DOTTED_UNDERLINE"
+  | Effect.DashedUnderline -> "DASHED_UNDERLINE"
+  | Effect.Blink -> "BLINK"
+  | Effect.Invert -> "INVERT"
+  | Effect.Hidden -> "HIDDEN"
+  | Effect.Strikethrough -> "STRIKETHROUGH"
+
+-- The sequence that turns the effect on.
+@pub fun renderEffect e =
+  let code =
+    match e with
+    | Effect.Bold -> "1"
+    | Effect.Dimmed -> "2"
+    | Effect.Italic -> "3"
+    | Effect.Underline -> "4"
+    | Effect.DoubleUnderline -> "21"
+    | Effect.CurlyUnderline -> "4:3"
+    | Effect.DottedUnderline -> "4:4"
+    | Effect.DashedUnderline -> "4:5"
+    | Effect.Blink -> "5"
+    | Effect.Invert -> "7"
+    | Effect.Hidden -> "8"
+    | Effect.Strikethrough -> "9"
+  in
+  "\u{1b}[${code}m"
+
+fun bits es =
+  match es with
+  | Effects b -> b
+
+-- No effects.
+@pub def plain = Effects 0
+
+-- The set holding just `e`.
+@pub fun effectSet e = Effects (1 << effectIndex e)
+
+-- The set holding each of `es`.
+@pub fun effectsOf es = V.foldl (\acc e -> insertEffects acc (effectSet e)) plain es
+
+-- Whether `es` is empty.
+@pub fun isPlainEffects es = bits es == 0
+
+-- Whether `es` holds every effect in `other`.
+@pub fun containsEffects es other = bitAnd (bits es) (bits other) == bits other
+
+-- Whether `es` holds `e`.
+@pub fun hasEffect es e = containsEffects es (effectSet e)
+
+-- `es` with the effects of `other` added.
+@pub fun insertEffects es other = Effects (bitOr (bits es) (bits other))
+
+-- `es` with the effects of `other` taken out.
+@pub fun removeEffects es other = Effects (bitAnd (bits es) (bitNot (bits other)))
+
+-- `es` with the effects of `other` added if `enable`, taken out if not.
+@pub fun setEffects es other enable = if enable then insertEffects es other else removeEffects es other
+
+-- The effects in `es`, in order.
+@pub fun effectsList es = V.filter (hasEffect es) allEffects
+
+-- The sequences that turn on every effect in `es`.
+@pub fun renderEffects es = S.join "" (V.map renderEffect (effectsList es))
+
+-- `es` as the crate's `Debug` prints it: `Effects(BOLD | ITALIC)`.
+@pub fun effectsDebug es = "Effects(${S.join " | " (V.map effectName (effectsList es))})"
