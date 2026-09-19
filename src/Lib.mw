@@ -2,7 +2,7 @@
 -- escape sequences that turn them on and off. A port of Rust's `anstyle`
 -- crate, version 1.0.14.
 --
---   use anstyle (style, bold, withFg, Ansi, Red, render, renderReset, paint)
+--   use Anstyle (style, bold, withFg, Ansi, Red, render, renderReset, paint)
 --
 --   def warning = bold (withFg (Just (Ansi Red)) style)
 --   paint warning "careful"  -- "\u{1b}[1m\u{1b}[31mcareful\u{1b}[0m"
@@ -15,9 +15,9 @@ mod Cases
 @cfg(test)
 mod Tests
 
-@pub use anstyle.Color
-@pub use anstyle.Color.AnsiColor.*
-@pub use anstyle.Color.Color.*
-@pub use anstyle.Effects
-@pub use anstyle.Effects.Effect.*
-@pub use anstyle.Style
+@pub use Anstyle.Color
+@pub use Anstyle.Color.AnsiColor.*
+@pub use Anstyle.Color.Color.*
+@pub use Anstyle.Effects
+@pub use Anstyle.Effects.Effect.*
+@pub use Anstyle.Style

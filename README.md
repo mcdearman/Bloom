@@ -10,13 +10,13 @@ decide whether a terminal can show colour. It only builds the sequences.
 ## Install
 
 ```sh
-meadow add mcdearman/meadow-anstyle
+meadow add mcdearman/MeadowAnstyle
 ```
 
 ## Use
 
 ```meadow
-use anstyle (style, bold, withFg, Ansi, Red, paint, render, renderReset)
+use Anstyle (style, bold, withFg, Ansi, Red, paint, render, renderReset)
 
 def warning = bold (withFg (Just (Ansi Red)) style)
 
