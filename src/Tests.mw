@@ -11,17 +11,17 @@ use Std.Collections.Vector as V
 @cfg(test)
 use Std.String as S
 @cfg(test)
-use Anstyle.Cases (cases)
+use Bloom.Cases (cases)
 @cfg(test)
-use Anstyle.Color
+use Bloom.Color
 @cfg(test)
-use Anstyle.Color.AnsiColor.*
+use Bloom.Color.AnsiColor.*
 @cfg(test)
-use Anstyle.Color.Color.*
+use Bloom.Color.Color.*
 @cfg(test)
-use Anstyle.Effects
+use Bloom.Effects
 @cfg(test)
-use Anstyle.Style
+use Bloom.Style
 
 @cfg(test)
 fun num i n =

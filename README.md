@@ -1,4 +1,4 @@
-# anstyle
+# bloom
 
 Styles for terminal text — colours and effects — and the ANSI escape sequences
 that turn them on and off, for [Meadow](https://github.com/mcdearman/meadow).
@@ -10,13 +10,13 @@ decide whether a terminal can show colour. It only builds the sequences.
 ## Install
 
 ```sh
-meadow add mcdearman/MeadowAnstyle
+meadow add mcdearman/Bloom
 ```
 
 ## Use
 
 ```meadow
-use Anstyle (style, bold, withFg, Ansi, Red, paint, render, renderReset)
+use Bloom (style, bold, withFg, Ansi, Red, paint, render, renderReset)
 
 def warning = bold (withFg (Just (Ansi Red)) style)
 

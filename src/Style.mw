@@ -4,8 +4,8 @@
 -- Copyright the anstyle contributors, and the Meadow port's authors.
 -- Dual-licensed under Apache-2.0 or MIT: see COPYRIGHT.
 
-use Anstyle.Color
-use Anstyle.Effects
+use Bloom.Color
+use Bloom.Effects
 
 -- How text looks. `Nothing` in a colour leaves the terminal's own.
 @pub record Style = { fg : Maybe Color, bg : Maybe Color, underline : Maybe Color, effects : Effects }
