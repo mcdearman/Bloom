@@ -7,6 +7,7 @@
 use Std.Collections.Vector as V
 
 -- The sixteen colours every terminal has.
+@derive(PartialEq)
 @pub data AnsiColor =
   Black
   | Red
@@ -27,6 +28,7 @@ use Std.Collections.Vector as V
 
 -- A colour: one of the sixteen, one of the 256 of the xterm palette (0 to
 -- 255), or red, green and blue, each 0 to 255.
+@derive(PartialEq)
 @pub data Color = Ansi AnsiColor | Ansi256 Int | Rgb Int Int Int
 
 def ansiColors =
